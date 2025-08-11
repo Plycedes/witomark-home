@@ -6,7 +6,7 @@ const Footer = () => {
                     <img src="/witomark-logo.png" className="w-40 h-8" />
                     <div className="text-sm text-gray-900 text-center">
                         <div>deepak@alemeno.com</div>
-                        <div>+91 9616558502</div>
+                        <div>+91 9618698062</div>
                     </div>
                     <div className="text-sm text-gray-900 text-center">
                         <div>Majiwada, Thane,</div>
@@ -14,7 +14,7 @@ const Footer = () => {
                     </div>
                 </div>
                 <div className="mt-20 pt-8 text-center text-sm text-gray-500">
-                    Copyright Alemeno Private Limited © 2023. All Rights Reserved
+                    Copyright Alemeno Private Limited © 2025. All Rights Reserved
                 </div>
             </div>
         </footer>

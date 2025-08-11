@@ -9,22 +9,22 @@ const FeaturesSection = () => {
                     <FeatureCard
                         icon={Shield}
                         title="Non-Copiable Technology"
-                        description="Each Witomark incorporates unique security features, our QR codes are impossible to duplicate, ensuring true product authenticity."
+                        description="Designed with advanced security features, our QR codes are impossible to duplicate, ensuring true product authenticity."
                     />
                     <FeatureCard
                         icon={Smartphone}
                         title="Instant Verification"
-                        description="Consumers can verify products using any smartphone, receiving immediate, accurate verification of authenticity in real time."
+                        description="Consumers can easily scan codes with any smartphone, receiving immediate, accurate verification of authenticity in real time."
                     />
                     <FeatureCard
                         icon={Check}
                         title="No app required"
-                        description="Simple verification works through any browser, eliminating the need to download native apps from Play Store or App Store."
+                        description="Our technology works directly from mobile browser, eliminating the need to download native apps from Play Store or App Store."
                     />
                     <FeatureCard
                         icon={BarChart3}
                         title="Data Analytics & Insights"
-                        description="Gain valuable insights into product movement, consumer behavior, and potential counterfeit hotspots through our analytics dashboard."
+                        description="Gain valuable insights into product movements, consumer engagement, and potential counterfeit hotspots through our rhobust analytics dashboard."
                     />
                     <FeatureCard
                         icon={Printer}

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast } from "react-toastify";
 
 interface Props {
     onClose: () => void;
@@ -19,7 +20,25 @@ export default function ConsultationForm({ onClose }: Props) {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        console.log(formData);
+        try {
+            const response = await fetch(`https://api.alemeno.com/api/contact/submit/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (response.ok) {
+                toast.success("Contact information sent successfully!");
+                onClose();
+            } else {
+                toast.error("Failed to send contact information");
+            }
+        } catch (error) {
+            toast.error("An error occurred.");
+            console.log(error);
+        }
     };
 
     return (
