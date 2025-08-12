@@ -1,28 +1,61 @@
 import { Check } from "lucide-react";
+import { motion, type Variants } from "framer-motion";
 
 interface Props {
     handleOpen: () => void;
 }
 
 const HeroSection = ({ handleOpen }: Props) => {
+    const fadeUp: Variants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: (custom: number) => ({
+            opacity: 1,
+            y: 0,
+            transition: {
+                delay: custom,
+                duration: 0.5,
+                ease: "easeOut",
+            },
+        }),
+    };
+
     return (
         <section className="relative overflow-hidden">
             <div className="w-full px-4 sm:px-6 lg:px-8 py-20">
+                {/* Greeting */}
                 <div className="text-center mb-16">
-                    <h1 className="text-4xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+                    <motion.h1
+                        className="text-4xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-6"
+                        variants={fadeUp}
+                        initial="hidden"
+                        animate="visible"
+                        custom={0.1}
+                    >
                         Secure non-copiable QR codes
                         <br />
                         to prevent counterfeiting
-                    </h1>
-                    <p className="text-xl text-gray-600 mb-8">
+                    </motion.h1>
+
+                    <motion.p
+                        className="text-xl text-gray-600 mb-8"
+                        variants={fadeUp}
+                        initial="hidden"
+                        animate="visible"
+                        custom={0.2}
+                    >
                         Simply scan the QR and verify authenticity in seconds
-                    </p>
-                    <button
+                    </motion.p>
+
+                    <motion.button
                         className="bg-green-500 hover:bg-green-600 text-white font-semibold px-8 py-3 rounded-md transition-colors"
                         onClick={handleOpen}
+                        variants={fadeUp}
+                        initial="hidden"
+                        animate="visible"
+                        custom={0.3}
                     >
                         Request a Demo
-                    </button>
+                    </motion.button>
                 </div>
 
                 {/* Product Showcase */}
