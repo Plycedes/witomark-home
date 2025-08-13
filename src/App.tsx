@@ -3,6 +3,7 @@ import { ToastContainer } from "react-toastify";
 import Home from "./pages/Home";
 import CustomMarkerAR from "./pages/CustomMarkerAR";
 import MarkerCornerDetector from "./pages/MarkerDetector";
+import SquareDetector from "./pages/SquareDetector";
 
 function App() {
     const [path, setPath] = useState<string>("");
@@ -20,6 +21,9 @@ function App() {
             break;
         case "marker":
             Page = MarkerCornerDetector;
+            break;
+        case "detect":
+            Page = SquareDetector;
             break;
         case "":
         default:
