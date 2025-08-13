@@ -8,18 +8,29 @@ export default function MarkerCornerDetector() {
     const [corners, setCorners] = useState([]);
 
     useEffect(() => {
-        let video = videoRef.current;
-        let canvas = canvasRef.current;
-        let context = canvas?.getContext("2d");
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const context = canvas?.getContext("2d");
 
         const detector = new AR.Detector();
 
         async function startCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { exact: "environment" }, // Back-facing camera
+                    },
+                });
                 if (video) {
                     video.srcObject = stream;
-                    video.play();
+                    video.onloadedmetadata = () => {
+                        // Keep canvas in same aspect ratio as video
+                        const ratio = video.videoWidth / video.videoHeight;
+                        canvas.width = 640;
+                        canvas.height = 640 / ratio;
+                        video.play();
+                        tick();
+                    };
                 }
             } catch (err) {
                 console.error("Error accessing camera:", err);
@@ -27,42 +38,34 @@ export default function MarkerCornerDetector() {
         }
 
         function tick() {
-            if (video && canvas && context && video.readyState === video.HAVE_ENOUGH_DATA) {
-                // Draw the current video frame to canvas
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            setTimeout(() => {
+                if (video && canvas && context && video.readyState === video.HAVE_ENOUGH_DATA) {
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // Get imageData for detection
-                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                    const detectedMarkers = detector.detect(imageData);
 
-                // Detect markers
-                const detectedMarkers = detector.detect(imageData);
-
-                if (detectedMarkers.length > 0) {
-                    // Get corner points of the first marker
-                    const markerCorners = detectedMarkers[0].corners.map((corner) => ({
-                        x: corner.x,
-                        y: corner.y,
-                    }));
-                    setCorners(markerCorners);
-                } else {
-                    setCorners([]);
+                    if (detectedMarkers.length > 0) {
+                        const markerCorners = detectedMarkers[0].corners.map((corner) => ({
+                            x: corner.x,
+                            y: corner.y,
+                        }));
+                        setCorners(markerCorners);
+                    } else {
+                        setCorners([]);
+                    }
                 }
-            }
-            requestAnimationFrame(tick);
+                requestAnimationFrame(tick);
+            }, 10); // 10ms delay
         }
 
-        startCamera().then(() => tick());
+        startCamera();
     }, []);
 
     return (
         <div>
-            <video ref={videoRef} style={{ display: "none" }} />
-            <canvas
-                ref={canvasRef}
-                width={640}
-                height={480}
-                style={{ border: "1px solid black" }}
-            />
+            <video ref={videoRef} style={{ display: "none" }} playsInline />
+            <canvas ref={canvasRef} style={{ border: "1px solid black" }} />
             <div style={{ marginTop: "10px" }}>
                 {corners.length > 0 ? (
                     <pre>{JSON.stringify(corners, null, 2)}</pre>
