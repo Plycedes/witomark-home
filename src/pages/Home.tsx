@@ -1,11 +1,11 @@
-import Header from "./Header";
-import Footer from "./Footer";
-import HeroSection from "./HeroSection";
-import FeaturesSection from "./FeaturesSection";
-import ProductInfoSection from "./ProductInfoSection";
-import CTA from "./CTA";
 import { useState } from "react";
-import ConsultationForm from "./ConsultationForm";
+import ConsultationForm from "../components/ConsultationForm";
+import CTA from "../components/CTA";
+import FeaturesSection from "../components/FeaturesSection";
+import Footer from "../components/Footer";
+import Header from "../components/Header";
+import HeroSection from "../components/HeroSection";
+import ProductInfoSection from "../components/ProductInfoSection";
 
 // Main Home Component
 const Home = () => {
