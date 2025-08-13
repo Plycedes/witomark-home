@@ -15,13 +15,13 @@ function App() {
     let Page: FC = Home;
 
     switch (path) {
-        case "/ar":
+        case "ar":
             Page = CustomMarkerAR;
             break;
-        case "/marker":
+        case "marker":
             Page = MarkerCornerDetector;
             break;
-        case "/":
+        case "":
         default:
             Page = Home;
             break;
