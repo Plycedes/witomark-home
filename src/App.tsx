@@ -8,7 +8,8 @@ function App() {
     const [path, setPath] = useState<string>("");
 
     useEffect(() => {
-        setPath(window.location.pathname);
+        const params = new URLSearchParams(window.location.search);
+        setPath(params.get("page") || "");
     }, []);
 
     let Page: FC = Home;
