@@ -1,13 +1,17 @@
+import { useEffect, useState, type FC } from "react";
 import { ToastContainer } from "react-toastify";
 import Home from "./pages/Home";
 import CustomMarkerAR from "./pages/CustomMarkerAR";
 import MarkerCornerDetector from "./pages/MarkerDetector";
-import { type FC } from "react";
 
 function App() {
-    const path = window.location.pathname;
+    const [path, setPath] = useState<string>("");
 
-    let Page: FC;
+    useEffect(() => {
+        setPath(window.location.pathname);
+    }, []);
+
+    let Page: FC = Home;
 
     switch (path) {
         case "/ar":
