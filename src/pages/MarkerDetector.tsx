@@ -118,7 +118,7 @@ export default function SquareDetector() {
                         const area = cv.contourArea(approx);
                         setData("Area " + area);
 
-                        if (validArea > 20000) {
+                        if (area > 20000) {
                             // Check for circle inside this square
                             const mask = cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC1);
                             const cntVector = new cv.MatVector();
