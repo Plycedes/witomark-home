@@ -74,9 +74,11 @@ export default function SquareDetector() {
             const thresh = new cv.Mat();
             const contours = new cv.MatVector();
             const hierarchy = new cv.Mat();
+            console.log("Detecting");
 
             function detect() {
                 // Match canvas to video frame size
+                console.log("Detecting2");
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
 
@@ -105,8 +107,10 @@ export default function SquareDetector() {
 
                 let validSquare = null;
                 let validArea = 0;
+                console.log("Area", validArea);
 
                 for (let i = 0; i < contours.size(); i++) {
+                    console.log("For loop");
                     const cnt = contours.get(i);
                     const peri = cv.arcLength(cnt, true);
                     const approx = new cv.Mat();
@@ -118,13 +122,9 @@ export default function SquareDetector() {
                         if (area > validArea) {
                             // Check for circle inside this square
                             const mask = cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC1);
-                            cv.drawContours(
-                                mask,
-                                new cv.MatVector([approx]),
-                                -1,
-                                new cv.Scalar(255),
-                                -1
-                            );
+                            const cntVector = new cv.MatVector();
+                            cntVector.push_back(approx);
+                            cv.drawContours(mask, cntVector, -1, new cv.Scalar(255), -1);
 
                             // Crop square ROI
                             const rect = cv.boundingRect(approx);
@@ -146,10 +146,7 @@ export default function SquareDetector() {
 
                             let hasValidCircle = false;
                             for (let j = 0; j < circles.cols; j++) {
-                                // const x = circles.data32F[j * 3];
-                                // const y = circles.data32F[j * 3 + 1];
                                 const r = circles.data32F[j * 3 + 2];
-
                                 const circleArea = Math.PI * r * r;
                                 const coverage = circleArea / area;
 
@@ -161,6 +158,7 @@ export default function SquareDetector() {
 
                             circles.delete();
                             roiGray.delete();
+                            cntVector.delete();
                             mask.delete();
 
                             if (hasValidCircle) {
@@ -173,6 +171,7 @@ export default function SquareDetector() {
                     approx.delete();
                     cnt.delete();
                 }
+                console.log("Outside for loop");
 
                 if (validSquare && validArea > 1000) {
                     if (validArea > 20000) {
