@@ -146,8 +146,8 @@ export default function SquareDetector() {
 
                             let hasValidCircle = false;
                             for (let j = 0; j < circles.cols; j++) {
-                                const x = circles.data32F[j * 3];
-                                const y = circles.data32F[j * 3 + 1];
+                                // const x = circles.data32F[j * 3];
+                                // const y = circles.data32F[j * 3 + 1];
                                 const r = circles.data32F[j * 3 + 2];
 
                                 const circleArea = Math.PI * r * r;
