@@ -117,7 +117,8 @@ export default function SquareDetector() {
                     if (approx.rows === 4 && cv.isContourConvex(approx)) {
                         const area = cv.contourArea(approx);
                         setData("Area " + area);
-                        if (area > validArea) {
+
+                        if (validArea > 20000) {
                             // Check for circle inside this square
                             const mask = cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC1);
                             const cntVector = new cv.MatVector();
@@ -227,6 +228,7 @@ export default function SquareDetector() {
                 }
 
                 src.delete();
+                console.log("Completed loop");
                 requestAnimationFrame(detect);
             }
 
