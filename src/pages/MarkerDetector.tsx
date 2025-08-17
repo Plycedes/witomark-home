@@ -14,7 +14,6 @@ export default function SquareDetector() {
     const [snippedSrc, setSnippedSrc] = useState<string | null>(null);
     const [message, setMessage] = useState<string>("");
     const [data, setData] = useState<string>("");
-    const [data2, setData2] = useState<string>("");
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
@@ -76,11 +75,10 @@ export default function SquareDetector() {
             const thresh = new cv.Mat();
             const contours = new cv.MatVector();
             const hierarchy = new cv.Mat();
-            console.log("Detecting");
 
             function detect() {
                 // Match canvas to video frame size
-                console.log("Detecting2");
+                setData("Detecting");
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
 
@@ -118,7 +116,6 @@ export default function SquareDetector() {
 
                     if (approx.rows === 4 && cv.isContourConvex(approx)) {
                         const area = cv.contourArea(approx);
-                        setData2("Square detected Area" + area);
 
                         if (area > validArea) {
                             // Check for circle inside this square
@@ -172,8 +169,7 @@ export default function SquareDetector() {
                     approx.delete();
                     cnt.delete();
                 }
-                setData("Area" + validArea);
-                console.log("Outside for loop");
+                // setData("Area" + validArea);
 
                 if (validSquare && validArea > 1000) {
                     if (validArea > 20000) {
@@ -251,7 +247,6 @@ export default function SquareDetector() {
             </div>
             <p className="my-5">{message ?? ""}</p>
             <p className="my-5">{data ?? ""}</p>
-            <p className="my-5">{data2 ?? ""}</p>
             {snippedSrc ? (
                 <img src={snippedSrc} alt="Snipped square" style={{ border: "2px solid green" }} />
             ) : (
