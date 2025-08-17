@@ -13,6 +13,8 @@ export default function SquareDetector() {
     const [isOpenCVReady, setIsOpenCVReady] = useState(false);
     const [snippedSrc, setSnippedSrc] = useState<string | null>(null);
     const [message, setMessage] = useState<string>("");
+    const [data, setData] = useState<string>("");
+    const [data2, setData2] = useState<string>("");
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
@@ -107,10 +109,8 @@ export default function SquareDetector() {
 
                 let validSquare = null;
                 let validArea = 0;
-                console.log("Area", validArea);
 
                 for (let i = 0; i < contours.size(); i++) {
-                    console.log("For loop");
                     const cnt = contours.get(i);
                     const peri = cv.arcLength(cnt, true);
                     const approx = new cv.Mat();
@@ -118,6 +118,7 @@ export default function SquareDetector() {
 
                     if (approx.rows === 4 && cv.isContourConvex(approx)) {
                         const area = cv.contourArea(approx);
+                        setData2("Square detected Area" + area);
 
                         if (area > validArea) {
                             // Check for circle inside this square
@@ -171,6 +172,7 @@ export default function SquareDetector() {
                     approx.delete();
                     cnt.delete();
                 }
+                setData("Area" + validArea);
                 console.log("Outside for loop");
 
                 if (validSquare && validArea > 1000) {
@@ -248,6 +250,8 @@ export default function SquareDetector() {
                 />
             </div>
             <p className="my-5">{message ?? ""}</p>
+            <p className="my-5">{data ?? ""}</p>
+            <p className="my-5">{data2 ?? ""}</p>
             {snippedSrc ? (
                 <img src={snippedSrc} alt="Snipped square" style={{ border: "2px solid green" }} />
             ) : (
