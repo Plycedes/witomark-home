@@ -78,7 +78,7 @@ export default function SquareDetector() {
 
             function detect() {
                 // Match canvas to video frame size
-                setData("Detecting");
+
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
 
@@ -116,7 +116,7 @@ export default function SquareDetector() {
 
                     if (approx.rows === 4 && cv.isContourConvex(approx)) {
                         const area = cv.contourArea(approx);
-
+                        setData("Area " + area);
                         if (area > validArea) {
                             // Check for circle inside this square
                             const mask = cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC1);
@@ -146,6 +146,7 @@ export default function SquareDetector() {
                             for (let j = 0; j < circles.cols; j++) {
                                 const r = circles.data32F[j * 3 + 2];
                                 const circleArea = Math.PI * r * r;
+                                setData(`Circle ${circleArea}`);
                                 const coverage = circleArea / area;
 
                                 if (coverage > 0.6) {
