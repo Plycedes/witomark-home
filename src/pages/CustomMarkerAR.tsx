@@ -16,7 +16,7 @@ export default function SquareDetector() {
     const [message, setMessage] = useState<string>("");
     const [data, setData] = useState<string>("");
 
-    const DELAY = 400;
+    const DELAY = 200;
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
@@ -172,6 +172,7 @@ export default function SquareDetector() {
 
                                 if (coverage > 0.1) {
                                     hasValidCircle = true;
+                                    setData(`Circle coverage: ${coverage.toFixed(2)}`);
                                     break;
                                 }
                             }
@@ -179,7 +180,6 @@ export default function SquareDetector() {
                             circles.delete();
                             smallRoi.delete();
                             roiGray.delete();
-                            setData(`Area: ${hasValidCircle}`);
 
                             if (hasValidCircle) {
                                 validArea = area;
