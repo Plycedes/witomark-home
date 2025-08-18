@@ -132,9 +132,18 @@ export default function SquareDetector() {
 
                     if (approx.rows === 4 && cv.isContourConvex(approx)) {
                         const area = cv.contourArea(approx);
+
                         if (area > 20000) {
                             // ROI extraction
                             const rect = cv.boundingRect(approx);
+
+                            // Aspect ratio check (filter out rectangles that are not square-ish)
+                            const aspectRatio = rect.width / rect.height;
+                            if (aspectRatio < 0.8 || aspectRatio > 1.2) {
+                                approx.delete();
+                                continue;
+                            }
+
                             let roiGray = gray.roi(rect);
 
                             // Downscale ROI to reduce circle detection load
@@ -142,9 +151,13 @@ export default function SquareDetector() {
                             cv.resize(
                                 roiGray,
                                 smallRoi,
-                                new cv.Size(roiGray.cols / 2, roiGray.rows / 2)
+                                new cv.Size(
+                                    Math.floor(roiGray.cols / 2),
+                                    Math.floor(roiGray.rows / 2)
+                                )
                             );
 
+                            // Detect circles with tighter params
                             const circles = new cv.Mat();
                             cv.HoughCircles(
                                 smallRoi,
@@ -152,17 +165,15 @@ export default function SquareDetector() {
                                 cv.HOUGH_GRADIENT,
                                 1,
                                 smallRoi.rows / 8,
-                                100,
-                                30,
+                                180, // param1: Canny high threshold
+                                50, // param2: accumulator threshold (higher = stricter)
                                 0,
                                 0
                             );
 
                             let hasValidCircle = false;
                             for (let j = 0; j < circles.cols; j++) {
-                                const r = circles.data32F[j * 3 + 2] * 2;
-
-                                // Now area in original ROI scale
+                                const r = circles.data32F[j * 3 + 2] * 2; // rescale radius
                                 const circleArea = Math.PI * r * r;
                                 const coverage = circleArea / area;
 
@@ -170,10 +181,48 @@ export default function SquareDetector() {
                                     `Circle ${circleArea}, og ${area} coverage: ${coverage}`
                                 );
 
-                                if (coverage > 0.5) {
-                                    hasValidCircle = true;
-                                    setData(`Circle coverage: ${coverage.toFixed(2)}`);
-                                    break;
+                                if (coverage > 0.1) {
+                                    const roiThresh = new cv.Mat();
+                                    cv.threshold(roiGray, roiThresh, 100, 255, cv.THRESH_BINARY);
+
+                                    const innerContours = new cv.MatVector();
+                                    const innerHierarchy = new cv.Mat();
+                                    cv.findContours(
+                                        roiThresh,
+                                        innerContours,
+                                        innerHierarchy,
+                                        cv.RETR_EXTERNAL,
+                                        cv.CHAIN_APPROX_SIMPLE
+                                    );
+
+                                    for (let k = 0; k < innerContours.size(); k++) {
+                                        const cnt = innerContours.get(k);
+                                        const cntArea = cv.contourArea(cnt);
+                                        const perimeter = cv.arcLength(cnt, true);
+
+                                        if (perimeter > 0) {
+                                            const circularity =
+                                                (4 * Math.PI * cntArea) / (perimeter * perimeter);
+                                            console.log(`circularity: ${circularity}`);
+
+                                            if (circularity > 0.7) {
+                                                // ~circle
+                                                hasValidCircle = true;
+                                                setData(
+                                                    `Circle coverage: ${coverage.toFixed(
+                                                        2
+                                                    )} | circularity: ${circularity.toFixed(2)}`
+                                                );
+                                            }
+                                        }
+                                        cnt.delete();
+                                    }
+
+                                    roiThresh.delete();
+                                    innerContours.delete();
+                                    innerHierarchy.delete();
+
+                                    if (hasValidCircle) break;
                                 }
                             }
 
