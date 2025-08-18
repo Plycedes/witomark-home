@@ -15,7 +15,7 @@ export default function SquareDetector() {
     const [message, setMessage] = useState<string>("");
     const [data, setData] = useState<string>("");
 
-    const DELAY = 400; // ms between frames (~5fps)
+    const DELAY = 400;
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
@@ -55,12 +55,22 @@ export default function SquareDetector() {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: { ideal: "environment" },
-                    width: { ideal: 1280 },
-                    height: { ideal: 1280 },
+                    width: { ideal: 1000 },
+                    height: { ideal: 1000 },
                 },
             });
             videoRef.current!.srcObject = stream;
             videoRef.current!.play();
+
+            const track = stream.getVideoTracks()[0];
+            const capabilities = track.getCapabilities();
+            if ("zoom" in capabilities) {
+                try {
+                    await track.applyConstraints({ advanced: [{ zoom: 3 } as any] });
+                } catch (error) {
+                    console.error("Failed to set zoom:", error);
+                }
+            }
 
             videoRef.current!.onloadeddata = () => {
                 processVideo();
@@ -144,11 +154,17 @@ export default function SquareDetector() {
 
                             let hasValidCircle = false;
                             for (let j = 0; j < circles.cols; j++) {
-                                const r = circles.data32F[j * 3 + 2];
+                                const r = circles.data32F[j * 3 + 2] * 2;
+
+                                // Now area in original ROI scale
                                 const circleArea = Math.PI * r * r;
                                 const coverage = circleArea / area;
-                                console.log(`Circle ${circleArea}, coverage: ${coverage}`);
-                                if (coverage > 0.005) {
+
+                                console.log(
+                                    `Circle ${circleArea}, og ${area} coverage: ${coverage}`
+                                );
+
+                                if (coverage > 0.1) {
                                     hasValidCircle = true;
                                     break;
                                 }
