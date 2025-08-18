@@ -9,6 +9,7 @@ declare global {
 
 export default function SquareDetector() {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const openCVLoadedRef = useRef(false);
     const [isOpenCVReady, setIsOpenCVReady] = useState(false);
     const [snippedSrc, setSnippedSrc] = useState<string | null>(null);
@@ -80,6 +81,9 @@ export default function SquareDetector() {
         function processVideo() {
             const cv = window.cv;
             const video = videoRef.current!;
+            const overlay = canvasRef.current!;
+            const overlayCtx = overlay.getContext("2d")!;
+
             const captureCanvas = document.createElement("canvas");
             const ctx = captureCanvas.getContext("2d");
 
@@ -93,6 +97,8 @@ export default function SquareDetector() {
 
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
+                overlay.width = video.videoWidth;
+                overlay.height = video.videoHeight;
 
                 ctx!.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
 
@@ -186,6 +192,8 @@ export default function SquareDetector() {
                     cnt.delete();
                 }
 
+                overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+
                 if (validSquare && validArea > 20000) {
                     setMessage("");
                     const pts: { x: number; y: number }[] = [];
@@ -195,6 +203,16 @@ export default function SquareDetector() {
                             y: validSquare.intPtr(i, 0)[1],
                         });
                     }
+
+                    overlayCtx.strokeStyle = "blue";
+                    overlayCtx.lineWidth = 4;
+                    overlayCtx.beginPath();
+                    overlayCtx.moveTo(pts[0].x, pts[0].y);
+                    for (let i = 1; i < pts.length; i++) {
+                        overlayCtx.lineTo(pts[i].x, pts[i].y);
+                    }
+                    overlayCtx.closePath();
+                    overlayCtx.stroke();
 
                     pts.sort((a, b) => a.y - b.y);
                     const top = pts.slice(0, 2).sort((a, b) => a.x - b.x);
@@ -251,8 +269,12 @@ export default function SquareDetector() {
 
     return (
         <div className="flex flex-col items-center">
-            <div className="rounded-xl overflow-hidden mt-10 mx-4">
+            <div className="relative rounded-xl overflow-hidden mt-10 mx-4">
                 <video ref={videoRef} playsInline className="w-96 h-96 object-cover" />
+                <canvas
+                    ref={canvasRef}
+                    className="absolute top-0 left-0 w-96 h-96 pointer-events-none"
+                />
             </div>
             <p className="my-5">{message ?? ""}</p>
             <p className="my-5">{data ?? ""}</p>
