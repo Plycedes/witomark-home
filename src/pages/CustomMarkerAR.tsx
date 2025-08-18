@@ -170,7 +170,7 @@ export default function SquareDetector() {
                                     `Circle ${circleArea}, og ${area} coverage: ${coverage}`
                                 );
 
-                                if (coverage > 0.6) {
+                                if (coverage > 0.5) {
                                     hasValidCircle = true;
                                     setData(`Circle coverage: ${coverage.toFixed(2)}`);
                                     break;
