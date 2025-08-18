@@ -15,7 +15,7 @@ export default function SquareDetector() {
     const [message, setMessage] = useState<string>("");
     const [data, setData] = useState<string>("");
 
-    const DELAY = 200; // ms between frames (~5fps)
+    const DELAY = 400; // ms between frames (~5fps)
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
