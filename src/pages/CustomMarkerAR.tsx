@@ -1,86 +1,250 @@
-// @ts-nocheck
-import React, { useEffect, useRef } from "react";
-import { Vector3, Euler } from "three";
+// SquareDetector.tsx
+import { useEffect, useRef, useState } from "react";
 
-type MarkerElement = HTMLElement & {
-    object3D: {
-        position: Vector3;
-        rotation: Euler;
+declare global {
+    interface Window {
+        cv: any;
+    }
+}
+
+export default function SquareDetector() {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const openCVLoadedRef = useRef(false);
+    const [isOpenCVReady, setIsOpenCVReady] = useState(false);
+    const [snippedSrc, setSnippedSrc] = useState<string | null>(null);
+    const [message, setMessage] = useState<string>("");
+    const [data, setData] = useState<string>("");
+
+    const DELAY = 200; // ms between frames (~5fps)
+
+    const openCVInit = () => {
+        if (openCVLoadedRef.current) return;
+        openCVLoadedRef.current = true;
+
+        if (window.cv && window.cv.onRuntimeInitialized) {
+            setIsOpenCVReady(true);
+            return;
+        }
+
+        const script = document.createElement("script");
+        script.src = "https://docs.opencv.org/4.8.0/opencv.js";
+        script.async = true;
+        script.onload = () => {
+            if (window.cv) {
+                window.cv.onRuntimeInitialized = () => {
+                    setIsOpenCVReady(true);
+                };
+            }
+        };
+        document.body.appendChild(script);
+
+        return () => {
+            document.body.removeChild(script);
+        };
     };
-};
-
-export default function CustomMarkerAR() {
-    const markerRef = useRef<MarkerElement | null>(null);
 
     useEffect(() => {
-        const markerEl = markerRef.current;
-        if (markerEl) {
-            const handleMarkerFound = () => {
-                console.log("✅ Marker found!");
-                console.log("Position:", markerEl.object3D.position);
-                console.log("Rotation:", markerEl.object3D.rotation);
-                console.log("Marker pixel width:", getMarkerPixelSize(markerEl), "px");
-            };
-            const handleMarkerLost = () => {
-                console.log("❌ Marker lost!");
-            };
-            markerEl.addEventListener("markerFound", handleMarkerFound);
-            markerEl.addEventListener("markerLost", handleMarkerLost);
-
-            return () => {
-                markerEl.removeEventListener("markerFound", handleMarkerFound);
-                markerEl.removeEventListener("markerLost", handleMarkerLost);
-            };
-        }
+        const cleanup = openCVInit();
+        return cleanup;
     }, []);
 
-    function getMarkerPixelSize(markerEl: MarkerElement) {
-        const scene = markerEl.sceneEl.object3D;
-        const camera = markerEl.sceneEl.camera;
+    useEffect(() => {
+        if (!isOpenCVReady) return;
 
-        // Assume the marker is 1 unit wide in world coordinates
-        const halfWidth = 0.5;
+        async function startCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: { ideal: "environment" },
+                    width: { ideal: 1280 },
+                    height: { ideal: 1280 },
+                },
+            });
+            videoRef.current!.srcObject = stream;
+            videoRef.current!.play();
 
-        // Two opposite corners in marker's local space
-        const corner1 = new Vector3(-halfWidth, 0, 0);
-        const corner2 = new Vector3(halfWidth, 0, 0);
+            videoRef.current!.onloadeddata = () => {
+                processVideo();
+            };
+        }
 
-        // Convert local coords → world coords
-        markerEl.object3D.localToWorld(corner1);
-        markerEl.object3D.localToWorld(corner2);
+        function processVideo() {
+            const cv = window.cv;
+            const video = videoRef.current!;
+            const captureCanvas = document.createElement("canvas");
+            const ctx = captureCanvas.getContext("2d");
 
-        // Project to normalized device coords (NDC)
-        corner1.project(camera);
-        corner2.project(camera);
+            const gray = new cv.Mat();
+            const thresh = new cv.Mat();
+            const contours = new cv.MatVector();
+            const hierarchy = new cv.Mat();
 
-        // Convert NDC → pixels
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        const p1 = { x: ((corner1.x + 1) / 2) * width, y: ((-corner1.y + 1) / 2) * height };
-        const p2 = { x: ((corner2.x + 1) / 2) * width, y: ((-corner2.y + 1) / 2) * height };
+            function detect() {
+                const start = performance.now();
 
-        // Distance in pixels
-        return Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
-    }
+                captureCanvas.width = video.videoWidth;
+                captureCanvas.height = video.videoHeight;
+
+                ctx!.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+
+                const imageData = ctx!.getImageData(
+                    0,
+                    0,
+                    captureCanvas.width,
+                    captureCanvas.height
+                );
+                const src = cv.matFromImageData(imageData);
+
+                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+                cv.threshold(gray, thresh, 100, 255, cv.THRESH_BINARY_INV);
+
+                cv.findContours(
+                    thresh,
+                    contours,
+                    hierarchy,
+                    cv.RETR_EXTERNAL,
+                    cv.CHAIN_APPROX_SIMPLE
+                );
+
+                let validSquare = null;
+                let validArea = 0;
+
+                for (let i = 0; i < contours.size(); i++) {
+                    const cnt = contours.get(i);
+                    const peri = cv.arcLength(cnt, true);
+                    const approx = new cv.Mat();
+                    cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+
+                    if (approx.rows === 4 && cv.isContourConvex(approx)) {
+                        const area = cv.contourArea(approx);
+                        if (area > 20000) {
+                            // ROI extraction
+                            const rect = cv.boundingRect(approx);
+                            let roiGray = gray.roi(rect);
+
+                            // Downscale ROI to reduce circle detection load
+                            const smallRoi = new cv.Mat();
+                            cv.resize(
+                                roiGray,
+                                smallRoi,
+                                new cv.Size(roiGray.cols / 2, roiGray.rows / 2)
+                            );
+
+                            const circles = new cv.Mat();
+                            cv.HoughCircles(
+                                smallRoi,
+                                circles,
+                                cv.HOUGH_GRADIENT,
+                                1,
+                                smallRoi.rows / 8,
+                                100,
+                                30,
+                                0,
+                                0
+                            );
+
+                            let hasValidCircle = false;
+                            for (let j = 0; j < circles.cols; j++) {
+                                const r = circles.data32F[j * 3 + 2];
+                                const circleArea = Math.PI * r * r;
+                                const coverage = circleArea / area;
+                                console.log(`Circle ${circleArea}, coverage: ${coverage}`);
+                                if (coverage > 0.005) {
+                                    hasValidCircle = true;
+                                    break;
+                                }
+                            }
+
+                            circles.delete();
+                            smallRoi.delete();
+                            roiGray.delete();
+                            setData(`Area: ${hasValidCircle}`);
+
+                            if (hasValidCircle) {
+                                validArea = area;
+                                validSquare = approx.clone();
+                            }
+                        }
+                    }
+
+                    approx.delete();
+                    cnt.delete();
+                }
+
+                if (validSquare && validArea > 20000) {
+                    setMessage("");
+                    const pts: { x: number; y: number }[] = [];
+                    for (let i = 0; i < 4; i++) {
+                        pts.push({
+                            x: validSquare.intPtr(i, 0)[0],
+                            y: validSquare.intPtr(i, 0)[1],
+                        });
+                    }
+
+                    pts.sort((a, b) => a.y - b.y);
+                    const top = pts.slice(0, 2).sort((a, b) => a.x - b.x);
+                    const bottom = pts.slice(2, 4).sort((a, b) => a.x - b.x);
+                    const ordered = [top[0], top[1], bottom[1], bottom[0]];
+
+                    const dstSize = new cv.Size(300, 300);
+                    const srcTri = cv.matFromArray(
+                        4,
+                        1,
+                        cv.CV_32FC2,
+                        ordered.flatMap((p) => [p.x, p.y])
+                    );
+                    const dstTri = cv.matFromArray(
+                        4,
+                        1,
+                        cv.CV_32FC2,
+                        [0, 0, 300, 0, 300, 300, 0, 300]
+                    );
+                    const M = cv.getPerspectiveTransform(srcTri, dstTri);
+                    const dst = new cv.Mat();
+                    cv.warpPerspective(src, dst, M, dstSize);
+
+                    const snipCanvas = document.createElement("canvas");
+                    snipCanvas.width = dstSize.width;
+                    snipCanvas.height = dstSize.height;
+                    cv.imshow(snipCanvas, dst);
+                    setSnippedSrc(snipCanvas.toDataURL());
+
+                    dst.delete();
+                    M.delete();
+                    srcTri.delete();
+                    dstTri.delete();
+                } else {
+                    setMessage("Move closer " + validArea);
+                    setSnippedSrc(null);
+                }
+
+                src.delete();
+
+                const end = performance.now();
+                console.log(
+                    `Frame processed in ${(end - start).toFixed(1)} ms, next in ${DELAY}ms`
+                );
+
+                setTimeout(detect, DELAY);
+            }
+
+            detect();
+        }
+
+        startCamera();
+    }, [isOpenCVReady]);
 
     return (
-        <div style={{ width: "100%", height: "100vh" }}>
-            <a-scene
-                vr-mode-ui="enabled: false"
-                embedded
-                arjs="trackingMethod: best; sourceType: webcam;"
-            >
-                <a-marker
-                    ref={markerRef as React.RefObject<HTMLElement>}
-                    id="custom-marker"
-                    type="pattern"
-                    url="/qr1.patt"
-                    emitevents="true"
-                >
-                    <a-box position="0 0.5 0" material="color: red;"></a-box>
-                </a-marker>
-                <a-entity camera></a-entity>
-            </a-scene>
+        <div className="flex flex-col items-center">
+            <div className="rounded-xl overflow-hidden mt-10">
+                <video ref={videoRef} playsInline className="w-96 h-96 object-cover" />
+            </div>
+            <p className="my-5">{message ?? ""}</p>
+            <p className="my-5">{data ?? ""}</p>
+            {snippedSrc ? (
+                <img src={snippedSrc} alt="Snipped square" style={{ border: "2px solid green" }} />
+            ) : (
+                <p>Looking for square pattern...</p>
+            )}
         </div>
     );
 }
