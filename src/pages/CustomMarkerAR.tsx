@@ -251,7 +251,7 @@ export default function SquareDetector() {
 
     return (
         <div className="flex flex-col items-center">
-            <div className="rounded-xl overflow-hidden mt-10">
+            <div className="rounded-xl overflow-hidden mt-10 mx-4">
                 <video ref={videoRef} playsInline className="w-96 h-96 object-cover" />
             </div>
             <p className="my-5">{message ?? ""}</p>
