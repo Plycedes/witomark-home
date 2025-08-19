@@ -150,8 +150,8 @@ export default function SquareDetector() {
                                 roiGray,
                                 smallRoi,
                                 new cv.Size(
-                                    Math.floor(roiGray.cols / 3),
-                                    Math.floor(roiGray.rows / 3)
+                                    Math.floor(roiGray.cols / 2),
+                                    Math.floor(roiGray.rows / 2)
                                 )
                             );
 
@@ -170,7 +170,7 @@ export default function SquareDetector() {
 
                             let hasValidCircle = false;
                             for (let j = 0; j < circles.cols; j++) {
-                                const r = circles.data32F[j * 3 + 2] * 3;
+                                const r = circles.data32F[j * 3 + 2] * 2;
                                 const circleArea = Math.PI * r * r;
                                 const coverage = circleArea / area;
 
