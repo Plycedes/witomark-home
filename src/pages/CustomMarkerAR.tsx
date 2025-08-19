@@ -16,7 +16,7 @@ export default function SquareDetector() {
     const [message, setMessage] = useState<string>("");
     const [data, setData] = useState<string>("");
 
-    const DELAY = 400;
+    const DELAY = 300;
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
@@ -67,7 +67,7 @@ export default function SquareDetector() {
             const capabilities = track.getCapabilities();
             if ("zoom" in capabilities) {
                 try {
-                    await track.applyConstraints({ advanced: [{ zoom: 3 } as any] });
+                    await track.applyConstraints({ advanced: [{ zoom: 4 } as any] });
                 } catch (error) {
                     console.error("Failed to set zoom:", error);
                 }
@@ -134,19 +134,17 @@ export default function SquareDetector() {
                         const area = cv.contourArea(approx);
 
                         if (area > 20000) {
-                            // ROI extraction
                             const rect = cv.boundingRect(approx);
 
-                            // Aspect ratio check (filter out rectangles that are not square-ish)
                             const aspectRatio = rect.width / rect.height;
-                            if (aspectRatio < 0.8 || aspectRatio > 1.2) {
+                            console.log(`Aspect ration ${aspectRatio}`);
+                            if (aspectRatio < 0.8 || aspectRatio > 1.1) {
                                 approx.delete();
                                 continue;
                             }
 
                             let roiGray = gray.roi(rect);
 
-                            // Downscale ROI to reduce circle detection load
                             const smallRoi = new cv.Mat();
                             cv.resize(
                                 roiGray,
@@ -157,7 +155,6 @@ export default function SquareDetector() {
                                 )
                             );
 
-                            // Detect circles with tighter params
                             const circles = new cv.Mat();
                             cv.HoughCircles(
                                 smallRoi,
@@ -165,15 +162,15 @@ export default function SquareDetector() {
                                 cv.HOUGH_GRADIENT,
                                 1,
                                 smallRoi.rows / 8,
-                                180, // param1: Canny high threshold
-                                50, // param2: accumulator threshold (higher = stricter)
+                                180,
+                                50,
                                 0,
                                 0
                             );
 
                             let hasValidCircle = false;
                             for (let j = 0; j < circles.cols; j++) {
-                                const r = circles.data32F[j * 3 + 2] * 2; // rescale radius
+                                const r = circles.data32F[j * 3 + 2] * 2;
                                 const circleArea = Math.PI * r * r;
                                 const coverage = circleArea / area;
 
@@ -225,7 +222,6 @@ export default function SquareDetector() {
                                     if (hasValidCircle) break;
                                 }
                             }
-
                             circles.delete();
                             smallRoi.delete();
                             roiGray.delete();

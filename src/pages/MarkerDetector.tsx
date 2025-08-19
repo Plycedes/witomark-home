@@ -9,14 +9,14 @@ declare global {
 
 export default function SquareDetector() {
     const videoRef = useRef<HTMLVideoElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null); // ✅ overlay canvas
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const openCVLoadedRef = useRef(false);
     const [isOpenCVReady, setIsOpenCVReady] = useState(false);
     const [snippedSrc, setSnippedSrc] = useState<string | null>(null);
     const [message, setMessage] = useState<string>("");
     const [data, setData] = useState<string>("");
 
-    const DELAY = 400;
+    const DELAY = 300;
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
@@ -67,7 +67,7 @@ export default function SquareDetector() {
             const capabilities = track.getCapabilities();
             if ("zoom" in capabilities) {
                 try {
-                    await track.applyConstraints({ advanced: [{ zoom: 3 } as any] });
+                    await track.applyConstraints({ advanced: [{ zoom: 4 } as any] });
                 } catch (error) {
                     console.error("Failed to set zoom:", error);
                 }
@@ -97,7 +97,7 @@ export default function SquareDetector() {
 
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
-                overlay.width = video.videoWidth; // ✅ match overlay size
+                overlay.width = video.videoWidth;
                 overlay.height = video.videoHeight;
 
                 ctx!.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
@@ -132,12 +132,104 @@ export default function SquareDetector() {
 
                     if (approx.rows === 4 && cv.isContourConvex(approx)) {
                         const area = cv.contourArea(approx);
-                        if (area > 20000) {
-                            // ROI + circle check (same as before)...
 
-                            // 🔑 Assume we found validSquare if circle condition holds
-                            validArea = area;
-                            validSquare = approx.clone();
+                        if (area > 20000) {
+                            const rect = cv.boundingRect(approx);
+
+                            const aspectRatio = rect.width / rect.height;
+                            console.log(`Aspect ration ${aspectRatio}`);
+                            if (aspectRatio < 0.8 || aspectRatio > 1.1) {
+                                approx.delete();
+                                continue;
+                            }
+
+                            let roiGray = gray.roi(rect);
+
+                            const smallRoi = new cv.Mat();
+                            cv.resize(
+                                roiGray,
+                                smallRoi,
+                                new cv.Size(
+                                    Math.floor(roiGray.cols / 3),
+                                    Math.floor(roiGray.rows / 3)
+                                )
+                            );
+
+                            const circles = new cv.Mat();
+                            cv.HoughCircles(
+                                smallRoi,
+                                circles,
+                                cv.HOUGH_GRADIENT,
+                                1,
+                                smallRoi.rows / 8,
+                                180,
+                                50,
+                                0,
+                                0
+                            );
+
+                            let hasValidCircle = false;
+                            for (let j = 0; j < circles.cols; j++) {
+                                const r = circles.data32F[j * 3 + 2] * 2;
+                                const circleArea = Math.PI * r * r;
+                                const coverage = circleArea / area;
+
+                                console.log(
+                                    `Circle ${circleArea}, og ${area} coverage: ${coverage}`
+                                );
+
+                                if (coverage > 0.1) {
+                                    const roiThresh = new cv.Mat();
+                                    cv.threshold(roiGray, roiThresh, 100, 255, cv.THRESH_BINARY);
+
+                                    const innerContours = new cv.MatVector();
+                                    const innerHierarchy = new cv.Mat();
+                                    cv.findContours(
+                                        roiThresh,
+                                        innerContours,
+                                        innerHierarchy,
+                                        cv.RETR_EXTERNAL,
+                                        cv.CHAIN_APPROX_SIMPLE
+                                    );
+
+                                    for (let k = 0; k < innerContours.size(); k++) {
+                                        const cnt = innerContours.get(k);
+                                        const cntArea = cv.contourArea(cnt);
+                                        const perimeter = cv.arcLength(cnt, true);
+
+                                        if (perimeter > 0) {
+                                            const circularity =
+                                                (4 * Math.PI * cntArea) / (perimeter * perimeter);
+                                            console.log(`circularity: ${circularity}`);
+
+                                            if (circularity > 0.7) {
+                                                // ~circle
+                                                hasValidCircle = true;
+                                                setData(
+                                                    `Circle coverage: ${coverage.toFixed(
+                                                        2
+                                                    )} | circularity: ${circularity.toFixed(2)}`
+                                                );
+                                            }
+                                        }
+                                        cnt.delete();
+                                    }
+
+                                    roiThresh.delete();
+                                    innerContours.delete();
+                                    innerHierarchy.delete();
+
+                                    if (hasValidCircle) break;
+                                }
+                            }
+                            circles.delete();
+                            smallRoi.delete();
+                            roiGray.delete();
+
+                            if (hasValidCircle) {
+                                validArea = area;
+                                validSquare = approx.clone();
+                            }
                         }
                     }
 
@@ -145,13 +237,10 @@ export default function SquareDetector() {
                     cnt.delete();
                 }
 
-                // ✅ Clear overlay each frame
                 overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
 
                 if (validSquare && validArea > 20000) {
                     setMessage("");
-                    setData(`Square area: ${validArea}`);
-                    // Extract points
                     const pts: { x: number; y: number }[] = [];
                     for (let i = 0; i < 4; i++) {
                         pts.push({
@@ -160,7 +249,6 @@ export default function SquareDetector() {
                         });
                     }
 
-                    // 🔹 Draw the square overlay
                     overlayCtx.strokeStyle = "blue";
                     overlayCtx.lineWidth = 4;
                     overlayCtx.beginPath();
@@ -204,7 +292,7 @@ export default function SquareDetector() {
                     srcTri.delete();
                     dstTri.delete();
                 } else {
-                    setMessage("Move closer");
+                    setMessage("Move closer " + validArea);
                     setSnippedSrc(null);
                 }
 
@@ -228,7 +316,6 @@ export default function SquareDetector() {
         <div className="flex flex-col items-center">
             <div className="relative rounded-xl overflow-hidden mt-10 mx-4">
                 <video ref={videoRef} playsInline className="w-96 h-96 object-cover" />
-                {/* ✅ Overlay canvas */}
                 <canvas
                     ref={canvasRef}
                     className="absolute top-0 left-0 w-96 h-96 pointer-events-none"
