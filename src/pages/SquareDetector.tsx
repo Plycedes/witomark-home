@@ -16,7 +16,7 @@ export default function SquareDetector() {
     const [message, setMessage] = useState<string>("");
     const [data, setData] = useState<string>("");
 
-    const DELAY = 200;
+    const DELAY = 50;
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
@@ -150,8 +150,8 @@ export default function SquareDetector() {
                                 roiGray,
                                 smallRoi,
                                 new cv.Size(
-                                    Math.floor(roiGray.cols / 4),
-                                    Math.floor(roiGray.rows / 4)
+                                    Math.floor(roiGray.cols / 2),
+                                    Math.floor(roiGray.rows / 2)
                                 )
                             );
 
@@ -170,7 +170,7 @@ export default function SquareDetector() {
 
                             let hasValidCircle = false;
                             for (let j = 0; j < circles.cols; j++) {
-                                const r = circles.data32F[j * 3 + 2] * 4;
+                                const r = circles.data32F[j * 3 + 2] * 2;
                                 const circleArea = Math.PI * r * r;
                                 const coverage = circleArea / area;
 
@@ -252,9 +252,12 @@ export default function SquareDetector() {
                     overlayCtx.strokeStyle = "blue";
                     overlayCtx.lineWidth = 4;
                     overlayCtx.beginPath();
-                    overlayCtx.moveTo(pts[0].x, pts[0].y);
+
+                    const offSetX = -40;
+
+                    overlayCtx.moveTo(pts[0].x + offSetX, pts[0].y);
                     for (let i = 1; i < pts.length; i++) {
-                        overlayCtx.lineTo(pts[i].x, pts[i].y);
+                        overlayCtx.lineTo(pts[i].x + offSetX, pts[i].y);
                     }
                     overlayCtx.closePath();
                     overlayCtx.stroke();

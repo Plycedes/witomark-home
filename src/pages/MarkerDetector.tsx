@@ -16,7 +16,8 @@ export default function SquareDetector() {
     const [message, setMessage] = useState<string>("");
     const [data, setData] = useState<string>("");
 
-    const DELAY = 200;
+    const DELAY = 300;
+    const MINAREA = 420000;
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
@@ -133,12 +134,12 @@ export default function SquareDetector() {
                     if (approx.rows === 4 && cv.isContourConvex(approx)) {
                         const area = cv.contourArea(approx);
 
-                        if (area > 20000) {
+                        if (area > MINAREA) {
                             const rect = cv.boundingRect(approx);
 
                             const aspectRatio = rect.width / rect.height;
                             console.log(`Aspect ration ${aspectRatio}`);
-                            if (aspectRatio < 0.8 || aspectRatio > 1.1) {
+                            if (aspectRatio < 0.8 || aspectRatio > 1.2) {
                                 approx.delete();
                                 continue;
                             }
@@ -208,7 +209,9 @@ export default function SquareDetector() {
                                                 setData(
                                                     `Circle coverage: ${coverage.toFixed(
                                                         2
-                                                    )} | circularity: ${circularity.toFixed(2)}`
+                                                    )} | circularity: ${circularity.toFixed(
+                                                        2
+                                                    )} | Sq area: ${area}`
                                                 );
                                             }
                                         }
@@ -230,6 +233,8 @@ export default function SquareDetector() {
                                 validArea = area;
                                 validSquare = approx.clone();
                             }
+                        } else {
+                            setMessage("Move closer");
                         }
                     }
 
@@ -239,7 +244,7 @@ export default function SquareDetector() {
 
                 overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
 
-                if (validSquare && validArea > 20000) {
+                if (validSquare && validArea > MINAREA) {
                     setMessage("");
                     const pts: { x: number; y: number }[] = [];
                     for (let i = 0; i < 4; i++) {
