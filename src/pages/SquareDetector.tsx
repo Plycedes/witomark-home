@@ -9,10 +9,14 @@ declare global {
 
 export default function SquareDetector() {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const openCVLoadedRef = useRef(false);
     const [isOpenCVReady, setIsOpenCVReady] = useState(false);
     const [snippedSrc, setSnippedSrc] = useState<string | null>(null);
     const [message, setMessage] = useState<string>("");
+    const [data, setData] = useState<string>("");
+
+    const DELAY = 200;
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
@@ -52,12 +56,22 @@ export default function SquareDetector() {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: { ideal: "environment" },
-                    width: { ideal: 1400 },
-                    height: { ideal: 1400 },
+                    width: { ideal: 1000 },
+                    height: { ideal: 1000 },
                 },
             });
             videoRef.current!.srcObject = stream;
             videoRef.current!.play();
+
+            const track = stream.getVideoTracks()[0];
+            const capabilities = track.getCapabilities();
+            if ("zoom" in capabilities) {
+                try {
+                    await track.applyConstraints({ advanced: [{ zoom: 4 } as any] });
+                } catch (error) {
+                    console.error("Failed to set zoom:", error);
+                }
+            }
 
             videoRef.current!.onloadeddata = () => {
                 processVideo();
@@ -67,6 +81,9 @@ export default function SquareDetector() {
         function processVideo() {
             const cv = window.cv;
             const video = videoRef.current!;
+            const overlay = canvasRef.current!;
+            const overlayCtx = overlay.getContext("2d")!;
+
             const captureCanvas = document.createElement("canvas");
             const ctx = captureCanvas.getContext("2d");
 
@@ -76,14 +93,15 @@ export default function SquareDetector() {
             const hierarchy = new cv.Mat();
 
             function detect() {
-                // Match canvas to video frame size
+                const start = performance.now();
+
                 captureCanvas.width = video.videoWidth;
                 captureCanvas.height = video.videoHeight;
+                overlay.width = video.videoWidth;
+                overlay.height = video.videoHeight;
 
-                // Draw current frame into canvas
                 ctx!.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
 
-                // Convert the drawn frame to cv.Mat
                 const imageData = ctx!.getImageData(
                     0,
                     0,
@@ -103,8 +121,8 @@ export default function SquareDetector() {
                     cv.CHAIN_APPROX_SIMPLE
                 );
 
-                let largestSquare = null;
-                let largestArea = 0;
+                let validSquare = null;
+                let validArea = 0;
 
                 for (let i = 0; i < contours.size(); i++) {
                     const cnt = contours.get(i);
@@ -114,73 +132,178 @@ export default function SquareDetector() {
 
                     if (approx.rows === 4 && cv.isContourConvex(approx)) {
                         const area = cv.contourArea(approx);
-                        if (area > largestArea) {
-                            largestArea = area;
-                            largestSquare = approx.clone();
+
+                        if (area > 20000) {
+                            const rect = cv.boundingRect(approx);
+
+                            const aspectRatio = rect.width / rect.height;
+                            console.log(`Aspect ration ${aspectRatio}`);
+                            if (aspectRatio < 0.8 || aspectRatio > 1.1) {
+                                approx.delete();
+                                continue;
+                            }
+
+                            let roiGray = gray.roi(rect);
+
+                            const smallRoi = new cv.Mat();
+                            cv.resize(
+                                roiGray,
+                                smallRoi,
+                                new cv.Size(
+                                    Math.floor(roiGray.cols / 4),
+                                    Math.floor(roiGray.rows / 4)
+                                )
+                            );
+
+                            const circles = new cv.Mat();
+                            cv.HoughCircles(
+                                smallRoi,
+                                circles,
+                                cv.HOUGH_GRADIENT,
+                                1,
+                                smallRoi.rows / 8,
+                                150,
+                                40,
+                                0,
+                                0
+                            );
+
+                            let hasValidCircle = false;
+                            for (let j = 0; j < circles.cols; j++) {
+                                const r = circles.data32F[j * 3 + 2] * 4;
+                                const circleArea = Math.PI * r * r;
+                                const coverage = circleArea / area;
+
+                                console.log(
+                                    `Circle ${circleArea}, og ${area} coverage: ${coverage}`
+                                );
+
+                                if (coverage > 0.1) {
+                                    const roiThresh = new cv.Mat();
+                                    cv.threshold(roiGray, roiThresh, 100, 255, cv.THRESH_BINARY);
+
+                                    const innerContours = new cv.MatVector();
+                                    const innerHierarchy = new cv.Mat();
+                                    cv.findContours(
+                                        roiThresh,
+                                        innerContours,
+                                        innerHierarchy,
+                                        cv.RETR_EXTERNAL,
+                                        cv.CHAIN_APPROX_SIMPLE
+                                    );
+
+                                    for (let k = 0; k < innerContours.size(); k++) {
+                                        const cnt = innerContours.get(k);
+                                        const cntArea = cv.contourArea(cnt);
+                                        const perimeter = cv.arcLength(cnt, true);
+
+                                        if (perimeter > 0) {
+                                            const circularity =
+                                                (4 * Math.PI * cntArea) / (perimeter * perimeter);
+                                            console.log(`circularity: ${circularity}`);
+
+                                            if (circularity > 0.7) {
+                                                // ~circle
+                                                hasValidCircle = true;
+                                                setData(
+                                                    `Circle coverage: ${coverage.toFixed(
+                                                        2
+                                                    )} | circularity: ${circularity.toFixed(2)}`
+                                                );
+                                            }
+                                        }
+                                        cnt.delete();
+                                    }
+
+                                    roiThresh.delete();
+                                    innerContours.delete();
+                                    innerHierarchy.delete();
+
+                                    if (hasValidCircle) break;
+                                }
+                            }
+                            circles.delete();
+                            smallRoi.delete();
+                            roiGray.delete();
+
+                            if (hasValidCircle) {
+                                validArea = area;
+                                validSquare = approx.clone();
+                            }
                         }
                     }
+
                     approx.delete();
                     cnt.delete();
                 }
-                console.log("Largest square", largestArea);
 
-                if (largestArea > 1000) {
-                    if (largestArea > 20000) {
-                        if (largestSquare) {
-                            setMessage("");
-                            const pts = [];
-                            for (let i = 0; i < 4; i++) {
-                                pts.push({
-                                    x: largestSquare.intPtr(i, 0)[0],
-                                    y: largestSquare.intPtr(i, 0)[1],
-                                });
-                            }
+                overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
 
-                            // Sort points to (tl, tr, br, bl)
-                            pts.sort((a, b) => a.y - b.y);
-                            const top = pts.slice(0, 2).sort((a, b) => a.x - b.x);
-                            const bottom = pts.slice(2, 4).sort((a, b) => a.x - b.x);
-                            const ordered = [top[0], top[1], bottom[1], bottom[0]];
-
-                            const dstSize = new cv.Size(300, 300);
-                            const srcTri = cv.matFromArray(
-                                4,
-                                1,
-                                cv.CV_32FC2,
-                                ordered.flatMap((p) => [p.x, p.y])
-                            );
-                            const dstTri = cv.matFromArray(
-                                4,
-                                1,
-                                cv.CV_32FC2,
-                                [0, 0, 300, 0, 300, 300, 0, 300]
-                            );
-                            const M = cv.getPerspectiveTransform(srcTri, dstTri);
-                            const dst = new cv.Mat();
-                            cv.warpPerspective(src, dst, M, dstSize);
-
-                            const snipCanvas = document.createElement("canvas");
-                            snipCanvas.width = dstSize.width;
-                            snipCanvas.height = dstSize.height;
-                            cv.imshow(snipCanvas, dst);
-                            setSnippedSrc(snipCanvas.toDataURL());
-
-                            dst.delete();
-                            M.delete();
-                            srcTri.delete();
-                            dstTri.delete();
-                        }
-                    } else {
-                        setMessage("Move closer");
-                        setSnippedSrc(null);
-                    }
-                } else {
+                if (validSquare && validArea > 20000) {
                     setMessage("");
+                    const pts: { x: number; y: number }[] = [];
+                    for (let i = 0; i < 4; i++) {
+                        pts.push({
+                            x: validSquare.intPtr(i, 0)[0],
+                            y: validSquare.intPtr(i, 0)[1],
+                        });
+                    }
+
+                    overlayCtx.strokeStyle = "blue";
+                    overlayCtx.lineWidth = 4;
+                    overlayCtx.beginPath();
+                    overlayCtx.moveTo(pts[0].x, pts[0].y);
+                    for (let i = 1; i < pts.length; i++) {
+                        overlayCtx.lineTo(pts[i].x, pts[i].y);
+                    }
+                    overlayCtx.closePath();
+                    overlayCtx.stroke();
+
+                    pts.sort((a, b) => a.y - b.y);
+                    const top = pts.slice(0, 2).sort((a, b) => a.x - b.x);
+                    const bottom = pts.slice(2, 4).sort((a, b) => a.x - b.x);
+                    const ordered = [top[0], top[1], bottom[1], bottom[0]];
+
+                    const dstSize = new cv.Size(300, 300);
+                    const srcTri = cv.matFromArray(
+                        4,
+                        1,
+                        cv.CV_32FC2,
+                        ordered.flatMap((p) => [p.x, p.y])
+                    );
+                    const dstTri = cv.matFromArray(
+                        4,
+                        1,
+                        cv.CV_32FC2,
+                        [0, 0, 300, 0, 300, 300, 0, 300]
+                    );
+                    const M = cv.getPerspectiveTransform(srcTri, dstTri);
+                    const dst = new cv.Mat();
+                    cv.warpPerspective(src, dst, M, dstSize);
+
+                    const snipCanvas = document.createElement("canvas");
+                    snipCanvas.width = dstSize.width;
+                    snipCanvas.height = dstSize.height;
+                    cv.imshow(snipCanvas, dst);
+                    setSnippedSrc(snipCanvas.toDataURL());
+
+                    dst.delete();
+                    M.delete();
+                    srcTri.delete();
+                    dstTri.delete();
+                } else {
+                    setMessage("Move closer " + validArea);
                     setSnippedSrc(null);
                 }
 
                 src.delete();
-                requestAnimationFrame(detect);
+
+                const end = performance.now();
+                console.log(
+                    `Frame processed in ${(end - start).toFixed(1)} ms, next in ${DELAY}ms`
+                );
+
+                setTimeout(detect, DELAY);
             }
 
             detect();
@@ -191,15 +314,15 @@ export default function SquareDetector() {
 
     return (
         <div className="flex flex-col items-center">
-            <div className="rounded-xl overflow-hidden mt-10">
-                <video
-                    ref={videoRef}
-                    playsInline
-                    className="w-96 h-96 object-cover"
-                    // style={{ borderRadius: "50px" }}
+            <div className="relative rounded-xl overflow-hidden mt-10 mx-4">
+                <video ref={videoRef} playsInline className="w-96 h-96 object-cover" />
+                <canvas
+                    ref={canvasRef}
+                    className="absolute top-0 left-0 w-96 h-96 pointer-events-none"
                 />
             </div>
             <p className="my-5">{message ?? ""}</p>
+            <p className="my-5">{data ?? ""}</p>
             {snippedSrc ? (
                 <img src={snippedSrc} alt="Snipped square" style={{ border: "2px solid green" }} />
             ) : (

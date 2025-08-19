@@ -16,7 +16,7 @@ export default function SquareDetector() {
     const [message, setMessage] = useState<string>("");
     const [data, setData] = useState<string>("");
 
-    const DELAY = 300;
+    const DELAY = 200;
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
@@ -170,7 +170,7 @@ export default function SquareDetector() {
 
                             let hasValidCircle = false;
                             for (let j = 0; j < circles.cols; j++) {
-                                const r = circles.data32F[j * 3 + 2] * 2;
+                                const r = circles.data32F[j * 3 + 2] * 3;
                                 const circleArea = Math.PI * r * r;
                                 const coverage = circleArea / area;
 
