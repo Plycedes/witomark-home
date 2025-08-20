@@ -4,6 +4,7 @@ import Home from "./pages/Home";
 import CustomMarkerAR from "./pages/CustomMarkerAR";
 import MarkerCornerDetector from "./pages/MarkerDetector";
 import SquareDetector from "./pages/SquareDetector";
+import PatternDetector from "./pages/NewMarker";
 
 function App() {
     const [path, setPath] = useState<string>("");
@@ -25,6 +26,9 @@ function App() {
         case "detect":
             Page = SquareDetector;
             break;
+        case "mark2":
+            Page = PatternDetector;
+            break;
         case "":
         default:
             Page = Home;
@@ -40,4 +44,3 @@ function App() {
 }
 
 export default App;
-

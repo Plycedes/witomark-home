@@ -166,8 +166,8 @@ export default function SquareDetector() {
                                 smallRoi.rows / 8,
                                 180,
                                 50,
-                                0,
-                                0
+                                140,
+                                180
                             );
 
                             let hasValidCircle = false;
@@ -190,7 +190,7 @@ export default function SquareDetector() {
                                     `Circle ${circleArea}, og ${area} coverage: ${coverage}`
                                 );
 
-                                if (coverage > 0.1) {
+                                if (coverage > 0.5) {
                                     const roiThresh = new cv.Mat();
                                     cv.threshold(roiGray, roiThresh, 100, 255, cv.THRESH_BINARY);
 
@@ -222,7 +222,7 @@ export default function SquareDetector() {
                                                         2
                                                     )} | circularity: ${circularity.toFixed(
                                                         2
-                                                    )} | aspect: ${aspectRatio}`
+                                                    )} | aspect: ${aspectRatio} | radius: ${r}`
                                                 );
                                             }
                                         }
