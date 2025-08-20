@@ -16,7 +16,7 @@ export default function SquareDetector() {
     const [message, setMessage] = useState<string>("");
     const [data, setData] = useState<string>("");
 
-    const DELAY = 300;
+    const DELAY = 50;
     const MINAREA = 420000;
 
     const openCVInit = () => {
@@ -94,6 +94,7 @@ export default function SquareDetector() {
             const hierarchy = new cv.Mat();
 
             function detect() {
+                overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
                 const start = performance.now();
 
                 captureCanvas.width = video.videoWidth;
@@ -139,7 +140,7 @@ export default function SquareDetector() {
 
                             const aspectRatio = rect.width / rect.height;
                             console.log(`Aspect ration ${aspectRatio}`);
-                            if (aspectRatio < 0.8 || aspectRatio > 1.2) {
+                            if (aspectRatio < 0.8 || aspectRatio > 1.1) {
                                 approx.delete();
                                 continue;
                             }
@@ -171,7 +172,17 @@ export default function SquareDetector() {
 
                             let hasValidCircle = false;
                             for (let j = 0; j < circles.cols; j++) {
+                                const x = circles.data32F[j * 3] * 2 + rect.x;
+                                const y = circles.data32F[j * 3 + 1] * 2 + rect.y;
                                 const r = circles.data32F[j * 3 + 2] * 2;
+
+                                // Draw circle overlay
+                                overlayCtx.beginPath();
+                                overlayCtx.strokeStyle = "red";
+                                overlayCtx.lineWidth = 3;
+                                overlayCtx.arc(x - 40, y, r, 0, 2 * Math.PI);
+                                overlayCtx.stroke();
+
                                 const circleArea = Math.PI * r * r;
                                 const coverage = circleArea / area;
 
@@ -203,7 +214,7 @@ export default function SquareDetector() {
                                                 (4 * Math.PI * cntArea) / (perimeter * perimeter);
                                             console.log(`circularity: ${circularity}`);
 
-                                            if (circularity > 0.7) {
+                                            if (circularity > 0.8) {
                                                 // ~circle
                                                 hasValidCircle = true;
                                                 setData(
@@ -211,7 +222,7 @@ export default function SquareDetector() {
                                                         2
                                                     )} | circularity: ${circularity.toFixed(
                                                         2
-                                                    )} | Sq area: ${area}`
+                                                    )} | aspect: ${aspectRatio}`
                                                 );
                                             }
                                         }
@@ -233,16 +244,12 @@ export default function SquareDetector() {
                                 validArea = area;
                                 validSquare = approx.clone();
                             }
-                        } else {
-                            setMessage("Move closer");
                         }
                     }
 
                     approx.delete();
                     cnt.delete();
                 }
-
-                overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
 
                 if (validSquare && validArea > MINAREA) {
                     setMessage("");
@@ -257,9 +264,12 @@ export default function SquareDetector() {
                     overlayCtx.strokeStyle = "blue";
                     overlayCtx.lineWidth = 4;
                     overlayCtx.beginPath();
-                    overlayCtx.moveTo(pts[0].x, pts[0].y);
+
+                    const offSetX = -40;
+
+                    overlayCtx.moveTo(pts[0].x + offSetX, pts[0].y);
                     for (let i = 1; i < pts.length; i++) {
-                        overlayCtx.lineTo(pts[i].x, pts[i].y);
+                        overlayCtx.lineTo(pts[i].x + offSetX, pts[i].y);
                     }
                     overlayCtx.closePath();
                     overlayCtx.stroke();

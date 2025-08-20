@@ -17,6 +17,7 @@ export default function SquareDetector() {
     const [data, setData] = useState<string>("");
 
     const DELAY = 50;
+    const MINAREA = 420000;
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
@@ -133,7 +134,7 @@ export default function SquareDetector() {
                     if (approx.rows === 4 && cv.isContourConvex(approx)) {
                         const area = cv.contourArea(approx);
 
-                        if (area > 20000) {
+                        if (area > MINAREA) {
                             const rect = cv.boundingRect(approx);
 
                             const aspectRatio = rect.width / rect.height;
@@ -202,13 +203,15 @@ export default function SquareDetector() {
                                                 (4 * Math.PI * cntArea) / (perimeter * perimeter);
                                             console.log(`circularity: ${circularity}`);
 
-                                            if (circularity > 0.7) {
+                                            if (circularity > 0.8) {
                                                 // ~circle
                                                 hasValidCircle = true;
                                                 setData(
                                                     `Circle coverage: ${coverage.toFixed(
                                                         2
-                                                    )} | circularity: ${circularity.toFixed(2)}`
+                                                    )} | circularity: ${circularity.toFixed(
+                                                        2
+                                                    )} | aspect: ${aspectRatio}`
                                                 );
                                             }
                                         }
@@ -239,7 +242,7 @@ export default function SquareDetector() {
 
                 overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
 
-                if (validSquare && validArea > 20000) {
+                if (validSquare && validArea > MINAREA) {
                     setMessage("");
                     const pts: { x: number; y: number }[] = [];
                     for (let i = 0; i < 4; i++) {
