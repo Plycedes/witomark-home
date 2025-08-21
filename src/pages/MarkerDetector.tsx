@@ -228,7 +228,7 @@ export default function SquareDetector() {
                             180,
                             50,
                             90,
-                            150
+                            180
                         );
 
                         let hasValidCircle = false;
