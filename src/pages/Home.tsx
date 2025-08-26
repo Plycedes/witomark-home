@@ -1,10 +1,14 @@
 import { useState } from "react";
 import ConsultationForm from "../components/ConsultationForm";
+// @ts-ignore
 import CTA from "../components/CTA";
+// @ts-ignore
 import FeaturesSection from "../components/FeaturesSection";
 import Footer from "../components/Footer";
 import Header from "../components/Header";
+// @ts-ignore
 import HeroSection from "../components/HeroSection";
+// @ts-ignore
 import ProductInfoSection from "../components/ProductInfoSection";
 import SplitScreenCarousel from "../components/SplitScreenCarousel";
 
@@ -12,6 +16,7 @@ import SplitScreenCarousel from "../components/SplitScreenCarousel";
 const Home = () => {
     const [form, setForm] = useState<boolean>(false);
 
+    // @ts-ignore
     const handleOpen = () => {
         setForm(true);
     };

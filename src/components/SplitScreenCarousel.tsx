@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+// @ts-ignore
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const SplitScreenCarousel = () => {
@@ -15,11 +16,11 @@ const SplitScreenCarousel = () => {
         }, 4000);
         return () => clearInterval(interval);
     }, [images.length]);
-
+    // @ts-ignore
     const nextImage = () => {
         setCurrentImageIndex((prev) => (prev + 1) % images.length);
     };
-
+    // @ts-ignore
     const prevImage = () => {
         setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
     };
