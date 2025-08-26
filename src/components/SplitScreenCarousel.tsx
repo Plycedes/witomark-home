@@ -67,7 +67,7 @@ const SplitScreenCarousel = () => {
 
             {/* Right Half - Image Carousel */}
             <div className="w-1/2 relative overflow-hidden flex items-center justify-center p-8">
-                <div className="relative w-6/7 perspective-1000">
+                <div className="relative w-6/7 min-w-6/7 perspective-1000">
                     <AnimatePresence mode="wait">
                         <motion.img
                             key={currentImageIndex}
