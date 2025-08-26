@@ -54,7 +54,7 @@ const SplitScreenCarousel = () => {
             {/* Carousel Section */}
             <div className="w-full md:w-1/2 overflow-hidden flex items-center justify-center p-4 md:p-8">
                 <div className="flex flex-col">
-                    <div className="w-full perspective-1000">
+                    <div className="w-full h-[320px] md:h-[400px] lg:h-[500px] perspective-1000">
                         <AnimatePresence mode="wait">
                             <motion.img
                                 key={currentImageIndex}
