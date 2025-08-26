@@ -9,6 +9,13 @@ const SplitScreenCarousel = () => {
     // Sample images - using placeholder images
     const images = ["/apparel.jpg", "/diamond.jpg", "/medicine.jpg", "/ticket.jpg", "/wine.jpg"];
 
+    useEffect(() => {
+        images.forEach((src) => {
+            const img = new Image();
+            img.src = src;
+        });
+    }, []);
+
     // Auto-advance carousel every 4 seconds
     useEffect(() => {
         const interval = setInterval(() => {
@@ -66,8 +73,8 @@ const SplitScreenCarousel = () => {
             </div>
 
             {/* Right Half - Image Carousel */}
-            <div className="w-1/2 relative overflow-hidden flex items-center justify-center p-8">
-                <div className="relative w-6/7 min-w-6/7 perspective-1000">
+            <div className="w-1/2 relative h-[550px] overflow-hidden flex items-center justify-center p-8">
+                <div className="relative w-6/7 perspective-1000">
                     <AnimatePresence mode="wait">
                         <motion.img
                             key={currentImageIndex}
