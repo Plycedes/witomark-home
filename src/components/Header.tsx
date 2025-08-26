@@ -2,7 +2,7 @@ const Header = () => {
     const handleGetInTouch = () => {
         window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
     };
-
+    // @ts-ignore
     const handleLogin = () => {
         window.location.href = "https://dashboard.witomark.com/login";
     };
@@ -19,12 +19,12 @@ const Header = () => {
                         >
                             Get in touch
                         </button>
-                        <button
+                        {/* <button
                             className="text-gray-700 hover:text-gray-900 px-3 py-2"
                             onClick={handleLogin}
                         >
                             Login
-                        </button>
+                        </button> */}
                     </div>
                 </div>
             </div>
