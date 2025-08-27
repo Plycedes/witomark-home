@@ -230,8 +230,8 @@ export default function SquareDetector() {
                             cv.HOUGH_GRADIENT,
                             1,
                             smallRoi.rows / 8,
-                            180,
-                            50,
+                            120,
+                            30,
                             60,
                             180
                         );
