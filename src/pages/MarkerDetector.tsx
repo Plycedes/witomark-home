@@ -23,7 +23,7 @@ export default function SquareDetector() {
     const [zoom, setZoom] = useState(4);
 
     const DELAY = 50;
-    const MINAREA = 200000;
+    const MINAREA = 100000;
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
@@ -191,6 +191,10 @@ export default function SquareDetector() {
             let validArea = 0;
             let avgSide = 0;
 
+            let radius: number = 0;
+            let xcord: number = 0;
+            let ycord: number = 0;
+
             for (let i = 0; i < contours.size(); i++) {
                 const cnt = contours.get(i);
                 const peri = cv.arcLength(cnt, true);
@@ -228,7 +232,7 @@ export default function SquareDetector() {
                             smallRoi.rows / 8,
                             180,
                             50,
-                            90,
+                            60,
                             180
                         );
 
@@ -239,11 +243,11 @@ export default function SquareDetector() {
                             const r = circles.data32F[j * 3 + 2] * 2;
 
                             // Draw circle overlay
-                            overlayCtx.beginPath();
-                            overlayCtx.strokeStyle = "red";
-                            overlayCtx.lineWidth = 3;
-                            overlayCtx.arc(x - 40, y, r, 0, 2 * Math.PI);
-                            overlayCtx.stroke();
+                            // overlayCtx.beginPath();
+                            // overlayCtx.strokeStyle = "red";
+                            // overlayCtx.lineWidth = 3;
+                            // overlayCtx.arc(x - 40, y, r, 0, 2 * Math.PI);
+                            // overlayCtx.stroke();
 
                             const circleArea = Math.PI * r * r;
                             const coverage = circleArea / area;
@@ -277,12 +281,15 @@ export default function SquareDetector() {
                                         if (circularity > 0.8) {
                                             // ~circle
                                             hasValidCircle = true;
+                                            radius = r;
+                                            xcord = x;
+                                            ycord = y;
                                             setData(
-                                                `Circle coverage: ${coverage.toFixed(
+                                                `coverage: ${coverage.toFixed(
                                                     2
                                                 )} | circularity: ${circularity.toFixed(
                                                     2
-                                                )} | radius: ${r / 2}`
+                                                )} | radius: ${(r / 2).toFixed(2)}`
                                             );
                                         }
                                     }
@@ -321,6 +328,12 @@ export default function SquareDetector() {
                         y: validSquare.intPtr(i, 0)[1],
                     });
                 }
+
+                overlayCtx.beginPath();
+                overlayCtx.strokeStyle = "red";
+                overlayCtx.lineWidth = 3;
+                overlayCtx.arc(xcord - 40, ycord, radius, 0, 2 * Math.PI);
+                overlayCtx.stroke();
 
                 overlayCtx.strokeStyle = "blue";
                 overlayCtx.lineWidth = 4;
