@@ -1,4 +1,5 @@
 // SquareDetector.tsx
+// Main file
 import { useEffect, useRef, useState } from "react";
 import ZoomSlider from "../components/ZoomSlider";
 
@@ -22,7 +23,7 @@ export default function SquareDetector() {
     const [zoom, setZoom] = useState(4);
 
     const DELAY = 50;
-    const MINAREA = 250000;
+    const MINAREA = 200000;
 
     const openCVInit = () => {
         if (openCVLoadedRef.current) return;
