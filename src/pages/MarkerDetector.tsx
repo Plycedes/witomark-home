@@ -1,5 +1,4 @@
 // SquareDetector.tsx
-// Main file
 import { useEffect, useRef, useState } from "react";
 import ZoomSlider from "../components/ZoomSlider";
 
