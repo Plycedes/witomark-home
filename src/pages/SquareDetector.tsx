@@ -84,8 +84,8 @@ export default function SquareDetector() {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: { ideal: "environment" },
-                    width: { ideal: 1400 },
-                    height: { ideal: 1400 },
+                    width: { ideal: 1800 },
+                    height: { ideal: 1800 },
                 },
             });
 
@@ -135,8 +135,8 @@ export default function SquareDetector() {
             const mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     deviceId: { exact: deviceId },
-                    width: { ideal: 1400 },
-                    height: { ideal: 1400 },
+                    width: { ideal: 1800 },
+                    height: { ideal: 1800 },
                 },
                 audio: false,
             });
