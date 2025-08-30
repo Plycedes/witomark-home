@@ -247,7 +247,7 @@ export default function SquareDetector() {
 
                             setData(`Blur ${score} Avg ${avg} Len ${newArr.length}`);
 
-                            if (newArr.length > 30 && score >= avg - 100) {
+                            if (newArr.length > 30 && score >= avg) {
                                 capturedRef.current = true;
                                 stopCamera();
                                 const dataUrl = imageDataToDataUrl(imageData);
