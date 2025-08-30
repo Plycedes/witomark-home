@@ -1,5 +1,5 @@
 // SquareDetector.tsx
-// Main file
+// detect file
 import { useCallback, useEffect, useRef, useState } from "react";
 import ZoomSlider from "../components/ZoomSlider";
 import { prepareFrame, drawOverlay, warpAndSnip } from "../utils/frame-processing";
@@ -84,8 +84,8 @@ export default function SquareDetector() {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: { ideal: "environment" },
-                    width: { ideal: 1000 },
-                    height: { ideal: 1000 },
+                    width: { ideal: 1400 },
+                    height: { ideal: 1400 },
                 },
             });
 
@@ -135,8 +135,8 @@ export default function SquareDetector() {
             const mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     deviceId: { exact: deviceId },
-                    width: { ideal: 1000 },
-                    height: { ideal: 1000 },
+                    width: { ideal: 1400 },
+                    height: { ideal: 1400 },
                 },
                 audio: false,
             });
@@ -247,7 +247,7 @@ export default function SquareDetector() {
 
                             setData(`Blur ${score} Avg ${avg} Len ${newArr.length}`);
 
-                            if (newArr.length > 30 && score >= avg - 100) {
+                            if (newArr.length > 30 && score >= avg) {
                                 capturedRef.current = true;
                                 stopCamera();
                                 const dataUrl = imageDataToDataUrl(imageData);
