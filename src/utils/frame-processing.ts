@@ -44,39 +44,105 @@ export function drawOverlay(square: any, circleData: any, overlayCtx: CanvasRend
 }
 
 // Warp and snip out the ROI
+// export function warpAndSnip(
+//     src: any,
+//     pts: { x: number; y: number }[],
+//     cv: any,
+//     setSnippedSrc: (s: string | null) => void
+// ): ImageData | null {
+//     pts.sort((a, b) => a.y - b.y);
+//     const top = pts.slice(0, 2).sort((a, b) => a.x - b.x);
+//     const bottom = pts.slice(2, 4).sort((a, b) => a.x - b.x);
+//     const ordered = [top[0], top[1], bottom[1], bottom[0]];
+
+//     const dstSize = new cv.Size(300, 300);
+//     const srcTri = cv.matFromArray(
+//         4,
+//         1,
+//         cv.CV_32FC2,
+//         ordered.flatMap((p) => [p.x, p.y])
+//     );
+//     const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, 300, 0, 300, 300, 0, 300]);
+//     const M = cv.getPerspectiveTransform(srcTri, dstTri);
+//     const dst = new cv.Mat();
+//     cv.warpPerspective(src, dst, M, dstSize);
+
+//     const snipCanvas = document.createElement("canvas");
+//     snipCanvas.width = dstSize.width;
+//     snipCanvas.height = dstSize.height;
+//     cv.imshow(snipCanvas, dst);
+//     const dataUrl = snipCanvas.toDataURL();
+//     setSnippedSrc(dataUrl);
+
+//     const ctx = snipCanvas.getContext("2d");
+//     const imageData = ctx?.getImageData(0, 0, snipCanvas.width, snipCanvas.height) || null;
+
+//     dst.delete();
+//     M.delete();
+//     srcTri.delete();
+//     dstTri.delete();
+
+//     return imageData;
+// }
+
 export function warpAndSnip(
     src: any,
     pts: { x: number; y: number }[],
     cv: any,
     setSnippedSrc: (s: string | null) => void
 ): ImageData | null {
+    // Order points: top-left, top-right, bottom-right, bottom-left
     pts.sort((a, b) => a.y - b.y);
     const top = pts.slice(0, 2).sort((a, b) => a.x - b.x);
     const bottom = pts.slice(2, 4).sort((a, b) => a.x - b.x);
     const ordered = [top[0], top[1], bottom[1], bottom[0]];
 
-    const dstSize = new cv.Size(300, 300);
+    // Compute width & height based on distances between points
+    const widthTop = Math.hypot(ordered[1].x - ordered[0].x, ordered[1].y - ordered[0].y);
+    const widthBottom = Math.hypot(ordered[2].x - ordered[3].x, ordered[2].y - ordered[3].y);
+    const maxWidth = Math.round(Math.max(widthTop, widthBottom));
+
+    const heightLeft = Math.hypot(ordered[3].x - ordered[0].x, ordered[3].y - ordered[0].y);
+    const heightRight = Math.hypot(ordered[2].x - ordered[1].x, ordered[2].y - ordered[1].y);
+    const maxHeight = Math.round(Math.max(heightLeft, heightRight));
+
+    const dstSize = new cv.Size(maxWidth, maxHeight);
+
+    // Build source and destination quadrilateral
     const srcTri = cv.matFromArray(
         4,
         1,
         cv.CV_32FC2,
         ordered.flatMap((p) => [p.x, p.y])
     );
-    const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, 300, 0, 300, 300, 0, 300]);
+    const dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+        0,
+        0,
+        maxWidth,
+        0,
+        maxWidth,
+        maxHeight,
+        0,
+        maxHeight,
+    ]);
+
     const M = cv.getPerspectiveTransform(srcTri, dstTri);
     const dst = new cv.Mat();
     cv.warpPerspective(src, dst, M, dstSize);
 
+    // Convert to canvas
     const snipCanvas = document.createElement("canvas");
     snipCanvas.width = dstSize.width;
     snipCanvas.height = dstSize.height;
     cv.imshow(snipCanvas, dst);
+
     const dataUrl = snipCanvas.toDataURL();
     setSnippedSrc(dataUrl);
 
     const ctx = snipCanvas.getContext("2d");
     const imageData = ctx?.getImageData(0, 0, snipCanvas.width, snipCanvas.height) || null;
 
+    // Cleanup
     dst.delete();
     M.delete();
     srcTri.delete();
